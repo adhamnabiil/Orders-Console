@@ -6,5 +6,6 @@ export default defineConfig({
     fileParallelism: false,
     hookTimeout: 60_000,
     testTimeout: 60_000,
+    setupFiles: ["./tests/preload-env.ts"],
   },
 });
