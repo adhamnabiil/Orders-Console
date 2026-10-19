@@ -1,9 +1,11 @@
-import type { FilterQuery, SortOrder, Types } from "mongoose";
+import type { SortOrder, Types } from "mongoose";
 import {
   OrderModel,
   type OrderDocument,
   type OrderStatus,
 } from "../models/order.model.js";
+
+type OrderFilter = Record<string, unknown>;
 
 export type OrderListItem = {
   _id: Types.ObjectId;
@@ -16,7 +18,7 @@ export type OrderListItem = {
 };
 
 export type ListOrdersParams = {
-  filter: FilterQuery<OrderDocument>;
+  filter: OrderFilter;
   sortField: "createdAt" | "totalCents";
   sortDir: 1 | -1;
   skip: number;

@@ -1,5 +1,4 @@
 import { createHash } from "node:crypto";
-import type { FilterQuery } from "mongoose";
 import mongoose from "mongoose";
 import type { OrderDocument } from "../models/order.model.js";
 import { orderRepository } from "../repositories/order.repository.js";
@@ -47,7 +46,7 @@ function toPublicOrder(order: OrderDocument) {
 
 export const orderService = {
   async list(query: ListOrdersQuery) {
-    const filter: FilterQuery<OrderDocument> = {};
+    const filter: Record<string, unknown> = {};
 
     if (query.status) {
       filter.status = query.status;

@@ -51,7 +51,7 @@ export function LoginPage() {
     >
       <Card sx={{ width: "100%", maxWidth: 420, boxShadow: 3 }}>
         <CardContent sx={{ p: 4 }}>
-          <Typography variant="h5" fontWeight={700} gutterBottom>
+          <Typography variant="h5" sx={{ fontWeight: 700 }} gutterBottom>
             Orders Console
           </Typography>
           <Typography color="text.secondary" sx={{ mb: 3 }}>

@@ -123,7 +123,7 @@ export function OrdersPage() {
     <Box sx={{ minHeight: "100vh", bgcolor: "background.default" }}>
       <AppBar position="sticky" elevation={0} color="transparent" sx={{ borderBottom: 1, borderColor: "divider", bgcolor: "background.paper" }}>
         <Toolbar sx={{ gap: 2 }}>
-          <Typography variant="h6" fontWeight={700} sx={{ flexGrow: 1 }}>
+          <Typography variant="h6" sx={{ fontWeight: 700, flexGrow: 1 }}>
             Orders Console
           </Typography>
           <Typography variant="body2" color="text.secondary">
@@ -137,8 +137,7 @@ export function OrdersPage() {
         <Stack
           direction={{ xs: "column", md: "row" }}
           spacing={2}
-          sx={{ mb: 2 }}
-          alignItems={{ md: "center" }}
+          sx={{ mb: 2, alignItems: { md: "center" } }}
         >
           <TextField
             label="Search name or email"
@@ -247,7 +246,7 @@ export function OrdersPage() {
               </TableBody>
             </Table>
           </TableContainer>
-          <Stack direction="row" alignItems="center" justifyContent="space-between" px={1}>
+          <Stack direction="row" sx={{ alignItems: "center", justifyContent: "space-between", px: 1 }}>
             <Typography variant="caption" color="text.secondary" sx={{ pl: 1 }}>
               {isFetching ? "Updating…" : `${data?.total ?? 0} orders`}
             </Typography>

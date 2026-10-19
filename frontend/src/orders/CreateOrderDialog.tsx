@@ -197,7 +197,7 @@ export function CreateOrderDialog({ open, onClose }: Props) {
           >
             Add item
           </Button>
-          <Typography fontWeight={600}>
+          <Typography sx={{ fontWeight: 600 }}>
             Total: ${(totalCents / 100).toFixed(2)}
           </Typography>
         </Stack>

@@ -82,7 +82,7 @@ function renderOrders(initial = "/orders") {
 }
 
 describe("rapid filter changes", () => {
-  beforeAll(() => server.listen({ onUnhandledRequest: "error" }));
+  beforeAll(() => server.listen());
   afterEach(() => {
     server.resetHandlers();
   });

@@ -7,7 +7,9 @@ import type {
 
 export const orderController = {
   async list(req: Request, res: Response) {
-    const result = await orderService.list(req.query as unknown as ListOrdersQuery);
+    const result = await orderService.list(
+      req.validatedQuery as ListOrdersQuery,
+    );
     res.json(result);
   },
 
