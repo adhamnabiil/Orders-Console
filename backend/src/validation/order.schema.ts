@@ -1,0 +1,29 @@
+import { z } from "zod";
+import { ORDER_STATUSES } from "../models/order.model.js";
+
+const orderItemSchema = z.object({
+  productName: z.string().trim().min(1).max(200),
+  quantity: z.number().int().min(1).max(10_000),
+  unitPriceCents: z.number().int().min(0).max(100_000_000),
+});
+
+export const createOrderSchema = z.object({
+  customerName: z.string().trim().min(1).max(200),
+  customerEmail: z.string().trim().email().max(320),
+  items: z.array(orderItemSchema).min(1).max(5),
+  totalCents: z.number().int().min(0),
+  status: z.enum(ORDER_STATUSES).optional().default("pending"),
+});
+
+export type CreateOrderInput = z.infer<typeof createOrderSchema>;
+
+export const listOrdersQuerySchema = z.object({
+  q: z.string().trim().max(200).optional().default(""),
+  status: z.enum(ORDER_STATUSES).optional(),
+  sort: z.enum(["createdAt", "totalCents"]).optional().default("createdAt"),
+  dir: z.enum(["asc", "desc"]).optional().default("desc"),
+  page: z.coerce.number().int().min(1).optional().default(1),
+  pageSize: z.coerce.number().int().min(1).max(100).optional().default(25),
+});
+
+export type ListOrdersQuery = z.infer<typeof listOrdersQuerySchema>;
