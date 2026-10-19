@@ -1,6 +1,10 @@
 import { CssBaseline, ThemeProvider, createTheme } from "@mui/material";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
+import { AuthProvider } from "./auth/AuthContext";
+import { LoginPage } from "./auth/LoginPage";
+import { ProtectedRoute } from "./auth/ProtectedRoute";
+import { OrdersPage } from "./orders/OrdersPage";
 
 const theme = createTheme({
   palette: {
@@ -28,16 +32,17 @@ export default function App() {
     <QueryClientProvider client={queryClient}>
       <ThemeProvider theme={theme}>
         <CssBaseline />
-        <BrowserRouter>
-          <Routes>
-            <Route path="/" element={<Navigate to="/orders" replace />} />
-            <Route
-              path="/orders"
-              element={<div>Orders Console — scaffolding</div>}
-            />
-            <Route path="/login" element={<div>Login — scaffolding</div>} />
-          </Routes>
-        </BrowserRouter>
+        <AuthProvider>
+          <BrowserRouter>
+            <Routes>
+              <Route path="/login" element={<LoginPage />} />
+              <Route element={<ProtectedRoute />}>
+                <Route path="/orders" element={<OrdersPage />} />
+              </Route>
+              <Route path="*" element={<Navigate to="/orders" replace />} />
+            </Routes>
+          </BrowserRouter>
+        </AuthProvider>
       </ThemeProvider>
     </QueryClientProvider>
   );
