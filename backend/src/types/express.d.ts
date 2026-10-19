@@ -1,10 +1,4 @@
-import type { UserRole } from "../models/user.model.js";
-
-export type AuthUser = {
-  sub: string;
-  role: UserRole;
-  email: string;
-};
+import type { AuthUser } from "./auth.js";
 
 declare global {
   namespace Express {
