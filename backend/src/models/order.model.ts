@@ -23,7 +23,12 @@ const orderSchema = new Schema(
     customerName: { type: String, required: true, trim: true },
     customerNameLower: { type: String, required: true, index: true },
     customerEmail: { type: String, required: true, lowercase: true, trim: true },
-    status: { type: String, enum: ORDER_STATUSES, required: true },
+    status: {
+      type: String,
+      enum: ORDER_STATUSES,
+      required: true,
+      default: "pending",
+    },
     items: {
       type: [orderItemSchema],
       required: true,

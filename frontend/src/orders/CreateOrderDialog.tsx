@@ -85,7 +85,6 @@ export function CreateOrderDialog({ open, onClose }: Props) {
           customerName: parsed.customerName,
           customerEmail: parsed.customerEmail,
           items: parsed.items,
-          status: "pending",
         },
         idempotencyKey,
       );

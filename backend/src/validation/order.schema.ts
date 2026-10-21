@@ -10,7 +10,6 @@ export const createOrderSchema = z.object({
   customerName: z.string().trim().min(1).max(200),
   customerEmail: z.string().trim().email().max(320),
   items: z.array(createOrderItemSchema).min(1).max(5),
-  status: z.enum(ORDER_STATUSES).optional().default("pending"),
 });
 
 export type CreateOrderInput = z.infer<typeof createOrderSchema>;

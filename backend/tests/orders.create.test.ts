@@ -15,7 +15,6 @@ const baseBody = {
   customerName: "Ada Lovelace",
   customerEmail: "ada@example.com",
   items: [{ productName: catalogProduct.productName, quantity: 1 }],
-  status: "pending" as const,
 };
 
 describe("order create idempotency", () => {
@@ -41,7 +40,22 @@ describe("order create idempotency", () => {
     const ids = [first.body.order.id, second.body.order.id];
     expect(ids[0]).toBe(ids[1]);
     expect(first.body.order.totalCents).toBe(catalogProduct.unitPriceCents);
+    expect(first.body.order.status).toBe("pending");
     expect(await OrderModel.countDocuments({ idempotencyKey: key })).toBe(1);
+  });
+
+  it("ignores a client-supplied status and always creates pending", async () => {
+    const res = await request(app)
+      .post("/api/orders")
+      .set("Authorization", `Bearer ${agentToken}`)
+      .set("Idempotency-Key", crypto.randomUUID())
+      .send({
+        ...baseBody,
+        status: "delivered",
+      });
+
+    expect(res.status).toBe(201);
+    expect(res.body.order.status).toBe("pending");
   });
 
   it("creates exactly one order across 10 parallel identical requests", async () => {

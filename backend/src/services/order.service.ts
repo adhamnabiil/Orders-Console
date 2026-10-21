@@ -120,7 +120,7 @@ export const orderService = {
     const totalCents = computeTotalCents(resolvedItems);
     const customerName = input.customerName.trim();
     const customerEmail = input.customerEmail.trim().toLowerCase();
-    const status = input.status;
+    const status = "pending" as const;
 
     const requestHash = requestHashFor({
       customerName,

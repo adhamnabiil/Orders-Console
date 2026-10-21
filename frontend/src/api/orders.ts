@@ -42,7 +42,6 @@ export type CreateOrderInput = {
   customerName: string;
   customerEmail: string;
   items: CreateOrderItem[];
-  status?: OrderStatus;
 };
 
 export async function listOrders(
