@@ -1,4 +1,3 @@
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { http, HttpResponse, delay } from "msw";
@@ -67,17 +66,12 @@ const server = setupServer(
 );
 
 function renderOrders(initial = "/orders") {
-  const client = new QueryClient({
-    defaultOptions: { queries: { retry: false, refetchOnWindowFocus: false } },
-  });
   return render(
-    <QueryClientProvider client={client}>
-      <AuthProvider>
-        <MemoryRouter initialEntries={[initial]}>
-          <OrdersPage />
-        </MemoryRouter>
-      </AuthProvider>
-    </QueryClientProvider>,
+    <AuthProvider>
+      <MemoryRouter initialEntries={[initial]}>
+        <OrdersPage />
+      </MemoryRouter>
+    </AuthProvider>,
   );
 }
 

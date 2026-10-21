@@ -2,7 +2,7 @@
 
 A small full-stack console for an operations team to search, filter, and create orders without duplicates. Built for the SARH take-home (Junior).
 
-**Stack:** React + Vite + MUI + axios + React Query (frontend) · Express + Mongoose + MongoDB (backend) · TypeScript on both sides.
+**Stack:** React + Vite + MUI + axios (frontend) · Express + Mongoose + MongoDB (backend) · TypeScript on both sides.
 
 ## Prerequisites
 
@@ -65,8 +65,8 @@ The backend suite includes the **R2 duplicate proof**: the same create request i
 - Sort by created date or amount
 - Server-side `skip` / `limit` pagination with total count
 - MUI table + `TablePagination` (never sends the full 50k rows to the browser)
-- React Query keys results by filters and passes axios `AbortSignal`, so a slow earlier response cannot overwrite a newer filter
-- Covered by the frontend rapid-filter test (MSW delays responses so stale results would surface if cancellation/query keys failed)
+- List fetching uses `AbortController` so a slow earlier response cannot overwrite a newer filter
+- Covered by the frontend rapid-filter test (MSW delays responses so stale results would surface if cancellation failed)
 
 ### R2 — Create order without duplicates
 

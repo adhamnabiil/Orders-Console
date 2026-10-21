@@ -5,8 +5,8 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import { clearToken } from "../api/http";
-import { login as loginApi } from "../api/auth";
+import { authApi } from "../apis/authApi";
+import { clearToken } from "../apis/axiosInstance";
 import { readAuthUser, type TokenPayload } from "./token";
 
 type AuthContextValue = {
@@ -24,7 +24,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     () => ({
       user,
       async login(email, password) {
-        await loginApi(email, password);
+        await authApi.login(email, password);
         setUser(readAuthUser());
       },
       logout() {

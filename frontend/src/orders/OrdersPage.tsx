@@ -23,10 +23,9 @@ import {
   Typography,
   Paper,
 } from "@mui/material";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
-import { deleteOrder, type OrderStatus } from "../api/orders";
+import { ordersApi, type OrderStatus } from "../apis/ordersApi";
 import { useAuth } from "../auth/AuthContext";
 import { CreateOrderDialog } from "./CreateOrderDialog";
 import { useOrders } from "./useOrders";
@@ -51,7 +50,7 @@ export function OrdersPage() {
   const { user, logout } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
   const [createOpen, setCreateOpen] = useState(false);
-  const queryClient = useQueryClient();
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   const qParam = searchParams.get("q") ?? "";
   const status = (searchParams.get("status") ?? "") as OrderStatus | "";
@@ -92,14 +91,18 @@ export function OrdersPage() {
     [qParam, status, sort, dir, page, pageSize],
   );
 
-  const { data, isFetching, isError, error, isLoading } = useOrders(params);
+  const { data, isFetching, isError, error, isLoading, refetch } =
+    useOrders(params);
 
-  const deleteMutation = useMutation({
-    mutationFn: deleteOrder,
-    onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ["orders"] });
-    },
-  });
+  async function handleDelete(id: string) {
+    setDeletingId(id);
+    try {
+      await ordersApi.delete(id);
+      refetch();
+    } finally {
+      setDeletingId(null);
+    }
+  }
 
   function updateParams(patch: Record<string, string | null>, resetPage = true) {
     const next = new URLSearchParams(searchParams);
@@ -121,7 +124,16 @@ export function OrdersPage() {
 
   return (
     <Box sx={{ minHeight: "100vh", bgcolor: "background.default" }}>
-      <AppBar position="sticky" elevation={0} color="transparent" sx={{ borderBottom: 1, borderColor: "divider", bgcolor: "background.paper" }}>
+      <AppBar
+        position="sticky"
+        elevation={0}
+        color="transparent"
+        sx={{
+          borderBottom: 1,
+          borderColor: "divider",
+          bgcolor: "background.paper",
+        }}
+      >
         <Toolbar sx={{ gap: 2 }}>
           <Typography variant="h6" sx={{ fontWeight: 700, flexGrow: 1 }}>
             Orders Console
@@ -171,7 +183,7 @@ export function OrdersPage() {
 
         {isError && (
           <Alert severity="error" sx={{ mb: 2 }}>
-            {(error as Error)?.message ?? "Failed to load orders"}
+            {error?.message ?? "Failed to load orders"}
           </Alert>
         )}
 
@@ -201,41 +213,42 @@ export function OrdersPage() {
                       Created
                     </TableSortLabel>
                   </TableCell>
-                  {user?.role === "admin" && <TableCell align="right">Actions</TableCell>}
+                  {user?.role === "admin" && (
+                    <TableCell align="right">Actions</TableCell>
+                  )}
                 </TableRow>
               </TableHead>
               <TableBody>
-                {isLoading && (
+                {isLoading && !data && (
                   <TableRow>
                     <TableCell colSpan={6} align="center" sx={{ py: 6 }}>
                       <CircularProgress size={28} />
                     </TableCell>
                   </TableRow>
                 )}
-                {!isLoading &&
-                  data?.items.map((order) => (
-                    <TableRow key={order.id} hover>
-                      <TableCell>{order.customerName}</TableCell>
-                      <TableCell>{order.customerEmail}</TableCell>
-                      <TableCell>{order.status}</TableCell>
-                      <TableCell>{formatMoney(order.totalCents)}</TableCell>
-                      <TableCell>
-                        {new Date(order.createdAt).toLocaleString()}
+                {data?.items.map((order) => (
+                  <TableRow key={order.id} hover>
+                    <TableCell>{order.customerName}</TableCell>
+                    <TableCell>{order.customerEmail}</TableCell>
+                    <TableCell>{order.status}</TableCell>
+                    <TableCell>{formatMoney(order.totalCents)}</TableCell>
+                    <TableCell>
+                      {new Date(order.createdAt).toLocaleString()}
+                    </TableCell>
+                    {user?.role === "admin" && (
+                      <TableCell align="right">
+                        <Button
+                          size="small"
+                          color="error"
+                          disabled={deletingId === order.id}
+                          onClick={() => handleDelete(order.id)}
+                        >
+                          Delete
+                        </Button>
                       </TableCell>
-                      {user?.role === "admin" && (
-                        <TableCell align="right">
-                          <Button
-                            size="small"
-                            color="error"
-                            disabled={deleteMutation.isPending}
-                            onClick={() => deleteMutation.mutate(order.id)}
-                          >
-                            Delete
-                          </Button>
-                        </TableCell>
-                      )}
-                    </TableRow>
-                  ))}
+                    )}
+                  </TableRow>
+                ))}
                 {!isLoading && data?.items.length === 0 && (
                   <TableRow>
                     <TableCell colSpan={6} align="center" sx={{ py: 4 }}>
@@ -246,7 +259,14 @@ export function OrdersPage() {
               </TableBody>
             </Table>
           </TableContainer>
-          <Stack direction="row" sx={{ alignItems: "center", justifyContent: "space-between", px: 1 }}>
+          <Stack
+            direction="row"
+            sx={{
+              alignItems: "center",
+              justifyContent: "space-between",
+              px: 1,
+            }}
+          >
             <Typography variant="caption" color="text.secondary" sx={{ pl: 1 }}>
               {isFetching ? "Updating…" : `${data?.total ?? 0} orders`}
             </Typography>
@@ -267,7 +287,11 @@ export function OrdersPage() {
         </Paper>
       </Container>
 
-      <CreateOrderDialog open={createOpen} onClose={() => setCreateOpen(false)} />
+      <CreateOrderDialog
+        open={createOpen}
+        onClose={() => setCreateOpen(false)}
+        onCreated={refetch}
+      />
     </Box>
   );
 }

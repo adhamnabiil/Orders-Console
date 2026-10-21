@@ -14,9 +14,8 @@ import {
   TextField,
   Typography,
 } from "@mui/material";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useState, type FormEvent } from "react";
-import { createOrder } from "../api/orders";
+import { ordersApi } from "../apis/ordersApi";
 import {
   PRODUCT_CATALOG,
   formatDollars,
@@ -28,6 +27,7 @@ import { createOrderSchema } from "../validation/orderSchema";
 type Props = {
   open: boolean;
   onClose: () => void;
+  onCreated: () => void;
 };
 
 type ItemDraft = {
@@ -42,8 +42,7 @@ const emptyItem = (): ItemDraft => ({
   quantity: "1",
 });
 
-export function CreateOrderDialog({ open, onClose }: Props) {
-  const queryClient = useQueryClient();
+export function CreateOrderDialog({ open, onClose, onCreated }: Props) {
   const [customerName, setCustomerName] = useState("");
   const [customerEmail, setCustomerEmail] = useState("");
   const [items, setItems] = useState<ItemDraft[]>([emptyItem()]);
@@ -51,6 +50,7 @@ export function CreateOrderDialog({ open, onClose }: Props) {
     crypto.randomUUID(),
   );
   const [formError, setFormError] = useState<string | null>(null);
+  const [isPending, setIsPending] = useState(false);
 
   useEffect(() => {
     if (open) {
@@ -59,6 +59,7 @@ export function CreateOrderDialog({ open, onClose }: Props) {
       setItems([emptyItem()]);
       setIdempotencyKey(crypto.randomUUID());
       setFormError(null);
+      setIsPending(false);
     }
   }, [open]);
 
@@ -70,42 +71,13 @@ export function CreateOrderDialog({ open, onClose }: Props) {
     }, 0);
   }, [items]);
 
-  const mutation = useMutation({
-    mutationFn: () => {
-      const parsed = createOrderSchema.parse({
-        customerName,
-        customerEmail,
-        items: items.map((item) => ({
-          productName: item.productName,
-          quantity: Number(item.quantity),
-        })),
-      });
-      return createOrder(
-        {
-          customerName: parsed.customerName,
-          customerEmail: parsed.customerEmail,
-          items: parsed.items,
-        },
-        idempotencyKey,
-      );
-    },
-    onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ["orders"] });
-      onClose();
-    },
-    onError: (err: unknown) => {
-      const message =
-        (err as { response?: { data?: { error?: string } } })?.response?.data
-          ?.error ?? "Failed to create order";
-      setFormError(message);
-    },
-  });
-
-  function onSubmit(event: FormEvent) {
+  async function onSubmit(event: FormEvent) {
     event.preventDefault();
     setFormError(null);
+
+    let parsed;
     try {
-      createOrderSchema.parse({
+      parsed = createOrderSchema.parse({
         customerName,
         customerEmail,
         items: items.map((item) => ({
@@ -117,7 +89,27 @@ export function CreateOrderDialog({ open, onClose }: Props) {
       setFormError("Please fix the form errors");
       return;
     }
-    mutation.mutate();
+
+    setIsPending(true);
+    try {
+      await ordersApi.create(
+        {
+          customerName: parsed.customerName,
+          customerEmail: parsed.customerEmail,
+          items: parsed.items,
+        },
+        idempotencyKey,
+      );
+      onCreated();
+      onClose();
+    } catch (err: unknown) {
+      const message =
+        (err as { response?: { data?: { error?: string } } })?.response?.data
+          ?.error ?? "Failed to create order";
+      setFormError(message);
+    } finally {
+      setIsPending(false);
+    }
   }
 
   return (
@@ -234,9 +226,9 @@ export function CreateOrderDialog({ open, onClose }: Props) {
           type="submit"
           form="create-order-form"
           variant="contained"
-          disabled={mutation.isPending}
+          disabled={isPending}
         >
-          {mutation.isPending ? "Creating…" : "Create"}
+          {isPending ? "Creating…" : "Create"}
         </Button>
       </DialogActions>
     </Dialog>

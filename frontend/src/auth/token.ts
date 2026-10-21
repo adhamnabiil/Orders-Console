@@ -1,5 +1,5 @@
 import { jwtDecode } from "jwt-decode";
-import { getToken } from "../api/http";
+import { getToken } from "../apis/axiosInstance";
 
 export type TokenPayload = {
   sub: string;
