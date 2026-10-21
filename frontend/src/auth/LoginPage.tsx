@@ -4,6 +4,8 @@ import {
   Button,
   Card,
   CardContent,
+  IconButton,
+  InputAdornment,
   Stack,
   TextField,
   Typography,
@@ -15,8 +17,9 @@ import { useAuth } from "./AuthContext";
 export function LoginPage() {
   const { user, login } = useAuth();
   const navigate = useNavigate();
-  const [email, setEmail] = useState("agent@example.com");
-  const [password, setPassword] = useState("agent123");
+  const [email, setEmail] = useState("admin@example.com");
+  const [password, setPassword] = useState("admin123");
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -70,12 +73,33 @@ export function LoginPage() {
             />
             <TextField
               label="Password"
-              type="password"
+              type={showPassword ? "text" : "password"}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
               autoComplete="current-password"
               fullWidth
+              slotProps={{
+                input: {
+                  endAdornment: (
+                    <InputAdornment position="end">
+                      <IconButton
+                        aria-label={
+                          showPassword ? "Hide password" : "Show password"
+                        }
+                        onClick={() => setShowPassword((prev) => !prev)}
+                        onMouseDown={(e) => e.preventDefault()}
+                        edge="end"
+                        size="small"
+                      >
+                        <Typography variant="caption" sx={{ fontWeight: 600 }}>
+                          {showPassword ? "Hide" : "Show"}
+                        </Typography>
+                      </IconButton>
+                    </InputAdornment>
+                  ),
+                },
+              }}
             />
             <Button type="submit" variant="contained" disabled={loading}>
               {loading ? "Signing in…" : "Sign in"}

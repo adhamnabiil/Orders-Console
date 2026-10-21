@@ -5,11 +5,7 @@ import {
   DialogActions,
   DialogContent,
   DialogTitle,
-  FormControl,
   IconButton,
-  InputLabel,
-  MenuItem,
-  Select,
   Stack,
   TextField,
   Typography,
@@ -142,6 +138,8 @@ export function CreateOrderDialog({ open, onClose, onCreated }: Props) {
           <Typography variant="subtitle2">Line items (1–5)</Typography>
           {items.map((item, index) => {
             const unitPrice = getCatalogPrice(item.productName) ?? 0;
+            const qty = Number(item.quantity) || 0;
+            const lineTotal = qty * unitPrice;
             return (
               <Stack
                 key={index}
@@ -149,32 +147,36 @@ export function CreateOrderDialog({ open, onClose, onCreated }: Props) {
                 spacing={1}
                 sx={{ alignItems: { sm: "center" } }}
               >
-                <FormControl fullWidth size="small" required>
-                  <InputLabel id={`product-${index}`}>Product</InputLabel>
-                  <Select
-                    labelId={`product-${index}`}
-                    label="Product"
-                    value={item.productName}
-                    onChange={(e) => {
-                      const next = [...items];
-                      next[index] = {
-                        ...item,
-                        productName: e.target.value as CatalogProductName,
-                      };
-                      setItems(next);
-                    }}
-                  >
-                    {PRODUCT_CATALOG.map((product) => (
-                      <MenuItem
-                        key={product.productName}
-                        value={product.productName}
-                      >
-                        {product.productName} (
-                        {formatDollars(product.unitPriceCents)})
-                      </MenuItem>
-                    ))}
-                  </Select>
-                </FormControl>
+                <TextField
+                  select
+                  label="Product"
+                  size="small"
+                  value={item.productName}
+                  onChange={(e) => {
+                    const next = [...items];
+                    next[index] = {
+                      ...item,
+                      productName: e.target.value as CatalogProductName,
+                    };
+                    setItems(next);
+                  }}
+                  required
+                  fullWidth
+                  slotProps={{
+                    select: {
+                      native: true,
+                    },
+                  }}
+                >
+                  {PRODUCT_CATALOG.map((product) => (
+                    <option
+                      key={product.productName}
+                      value={product.productName}
+                    >
+                      {product.productName}
+                    </option>
+                  ))}
+                </TextField>
                 <TextField
                   label="Qty"
                   type="number"
@@ -194,7 +196,7 @@ export function CreateOrderDialog({ open, onClose, onCreated }: Props) {
                   color="text.secondary"
                   sx={{ minWidth: 72, whiteSpace: "nowrap" }}
                 >
-                  {formatDollars(unitPrice)}
+                  {formatDollars(lineTotal)}
                 </Typography>
                 <IconButton
                   aria-label="Remove item"
