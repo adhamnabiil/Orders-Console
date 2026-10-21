@@ -20,6 +20,16 @@ Require an `Idempotency-Key` header. Insert the order with `{ createdBy, idempot
 
 ---
 
+## 3. Two independent projects (no shared package)
+
+**Choice:** Separate `frontend/` and `backend/` folders, each with its own `package.json`. Zod schemas are duplicated.
+
+**Alternative considered:** npm workspaces with a `shared/` package for validation types/schemas.
+
+**Why rejected:** The brief rewards a setup that runs in under five minutes from the README. Two plain projects are easier to explain in a live interview. Schema drift is a real risk, but the create payload is small; I call out the duplication here rather than add workspace tooling for one file.
+
+---
+
 ## AI disclosure
 
 I used Cursor as a coding assistant for boilerplate, and iterating on tests and structure. I directed the architecture, reviewed the generated code, and ran seed + test suites locally. I can walk through and modify any of this code in the interview.
