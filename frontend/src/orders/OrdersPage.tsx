@@ -7,6 +7,7 @@ import {
   Container,
   FormControl,
   InputLabel,
+  LinearProgress,
   MenuItem,
   Select,
   Stack,
@@ -187,7 +188,12 @@ export function OrdersPage() {
           </Alert>
         )}
 
-        <Paper>
+        <Paper sx={{ position: "relative" }}>
+          {isFetching && (
+            <LinearProgress
+              sx={{ position: "absolute", top: 0, left: 0, right: 0, zIndex: 1 }}
+            />
+          )}
           <TableContainer>
             <Table size="small" aria-label="orders table">
               <TableHead>
