@@ -36,14 +36,12 @@ export type ListOrdersResponse = {
 export type CreateOrderItem = {
   productName: string;
   quantity: number;
-  unitPriceCents: number;
 };
 
 export type CreateOrderInput = {
   customerName: string;
   customerEmail: string;
   items: CreateOrderItem[];
-  totalCents: number;
   status?: OrderStatus;
 };
 

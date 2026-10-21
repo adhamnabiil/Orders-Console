@@ -1,5 +1,6 @@
 import { createHash } from "node:crypto";
 import mongoose from "mongoose";
+import { getCatalogPrice } from "../data/catalog.js";
 import type { OrderDocument } from "../models/order.model.js";
 import { orderRepository } from "../repositories/order.repository.js";
 import type { AuthUser } from "../types/auth.js";
@@ -9,26 +10,45 @@ import type {
   ListOrdersQuery,
 } from "../validation/order.schema.js";
 
+type ResolvedItem = {
+  productName: string;
+  quantity: number;
+  unitPriceCents: number;
+};
+
 function escapeRegex(value: string): string {
   return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
-function requestHashFor(input: CreateOrderInput): string {
-  const payload = JSON.stringify({
-    customerName: input.customerName.trim(),
-    customerEmail: input.customerEmail.trim().toLowerCase(),
-    items: input.items,
-    totalCents: input.totalCents,
-    status: input.status,
+function resolveItems(input: CreateOrderInput): ResolvedItem[] {
+  return input.items.map((item) => {
+    const unitPriceCents = getCatalogPrice(item.productName);
+    if (unitPriceCents === undefined) {
+      throw new AppError(400, `Unknown product: ${item.productName}`);
+    }
+    return {
+      productName: item.productName,
+      quantity: item.quantity,
+      unitPriceCents,
+    };
   });
-  return createHash("sha256").update(payload).digest("hex");
 }
 
-function computeTotalCents(items: CreateOrderInput["items"]): number {
+function computeTotalCents(items: ResolvedItem[]): number {
   return items.reduce(
     (sum, item) => sum + item.quantity * item.unitPriceCents,
     0,
   );
+}
+
+function requestHashFor(payload: {
+  customerName: string;
+  customerEmail: string;
+  items: ResolvedItem[];
+  totalCents: number;
+  status: string;
+}): string {
+  return createHash("sha256").update(JSON.stringify(payload)).digest("hex");
 }
 
 function toPublicOrder(order: OrderDocument) {
@@ -96,24 +116,28 @@ export const orderService = {
       throw new AppError(400, "Idempotency-Key header is required");
     }
 
-    const computedTotal = computeTotalCents(input.items);
-    if (computedTotal !== input.totalCents) {
-      throw new AppError(
-        400,
-        `totalCents mismatch: expected ${computedTotal}, got ${input.totalCents}`,
-      );
-    }
+    const resolvedItems = resolveItems(input);
+    const totalCents = computeTotalCents(resolvedItems);
+    const customerName = input.customerName.trim();
+    const customerEmail = input.customerEmail.trim().toLowerCase();
+    const status = input.status;
 
-    const requestHash = requestHashFor(input);
+    const requestHash = requestHashFor({
+      customerName,
+      customerEmail,
+      items: resolvedItems,
+      totalCents,
+      status,
+    });
 
     try {
       const order = await orderRepository.create({
-        customerName: input.customerName.trim(),
-        customerNameLower: input.customerName.trim().toLowerCase(),
-        customerEmail: input.customerEmail.trim().toLowerCase(),
-        status: input.status,
-        items: input.items,
-        totalCents: computedTotal,
+        customerName,
+        customerNameLower: customerName.toLowerCase(),
+        customerEmail,
+        status,
+        items: resolvedItems,
+        totalCents,
         createdAt: new Date(),
         createdBy: user.sub,
         idempotencyKey: idempotencyKey.trim(),

@@ -66,16 +66,20 @@ The backend suite includes the **R2 duplicate proof**: the same create request i
 - Server-side `skip` / `limit` pagination with total count
 - MUI table + `TablePagination` (never sends the full 50k rows to the browser)
 - React Query keys results by filters and passes axios `AbortSignal`, so a slow earlier response cannot overwrite a newer filter
-
-Optional latency for demos: set `SIMULATE_LATENCY_MS=800` in `backend/.env` and restart.
+- Covered by the frontend rapid-filter test (MSW delays responses so stale results would surface if cancellation/query keys failed)
 
 ### R2 — Create order without duplicates
 
+- Line items are chosen from a fixed **product catalog** (same list in seed, API, and UI)
+- Client sends only `productName` + `quantity` — never prices or totals
+- Server resolves catalog prices, computes `totalCents`, and stores the snapshot on the order (used for list/sort)
 - Client + server validation (zod)
 - Required `Idempotency-Key` header (server-enforced)
 - Unique MongoDB index on `{ createdBy, idempotencyKey }`
 - Parallel identical creates → one `201`, rest `200` with the same order
 - Same key + different body → `422`
+
+`npm run seed` (local or Atlas via `MONGO_URL`) populates the 50k orders from that same catalog.
 
 ## Database indexes
 
@@ -101,12 +105,12 @@ Starting from the provided auth snippet, these problems were fixed:
 4. **Admin check only in React** — agents could DELETE via API. → `requireRole("admin")` on the server.
 5. **Plain-text password in the DB query** — → bcrypt hash + `bcrypt.compare`.
 6. **NoSQL injection** — `password: { $ne: null }` bypass. → zod requires email/password to be strings.
-7. **No token expiry** — → `expiresIn: "8h"`.
+7. **No token expiry** — → `expiresIn` from `JWT_EXPIRES_IN` (default `8h`).
 8. **Design gaps** — no 404/invalid-id handling, no async error handler, no login rate limit, DB access mixed into routes. → layered model/repo/service/controller, central error middleware, rate limit on login.
 
 ### Where the token is stored (client)
 
-The JWT is stored in `localStorage` and sent as `Authorization: Bearer` on each request (axios interceptor). This prevents CSRF because the browser never attaches the token automatically to cross-site requests. It does **not** protect against XSS: any script on the page can read and steal the token. Mitigation: 8h expiry and React’s default output escaping.
+The JWT is stored in `localStorage` and sent as `Authorization: Bearer` on each request (axios interceptor). This prevents CSRF because the browser never attaches the token automatically to cross-site requests. It does **not** protect against XSS: any script on the page can read and steal the token. Mitigation: short-lived expiry via `JWT_EXPIRES_IN` and React’s default output escaping.
 
 ## Product question — “Delete all cancelled orders”
 

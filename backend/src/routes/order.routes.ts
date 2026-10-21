@@ -1,7 +1,6 @@
 import { Router } from "express";
 import { orderController } from "../controllers/order.controller.js";
 import { requireAuth, requireRole } from "../middlewares/auth.middleware.js";
-import { latencyMiddleware } from "../middlewares/latency.middleware.js";
 import { validate } from "../middlewares/validate.middleware.js";
 import {
   createOrderSchema,
@@ -11,7 +10,6 @@ import {
 export const orderRoutes = Router();
 
 orderRoutes.use(requireAuth);
-orderRoutes.use(latencyMiddleware);
 
 orderRoutes.get(
   "/",

@@ -1,17 +1,15 @@
 import { z } from "zod";
 import { ORDER_STATUSES } from "../models/order.model.js";
 
-const orderItemSchema = z.object({
+const createOrderItemSchema = z.object({
   productName: z.string().trim().min(1).max(200),
   quantity: z.number().int().min(1).max(10_000),
-  unitPriceCents: z.number().int().min(0).max(100_000_000),
 });
 
 export const createOrderSchema = z.object({
   customerName: z.string().trim().min(1).max(200),
   customerEmail: z.string().trim().email().max(320),
-  items: z.array(orderItemSchema).min(1).max(5),
-  totalCents: z.number().int().min(0),
+  items: z.array(createOrderItemSchema).min(1).max(5),
   status: z.enum(ORDER_STATUSES).optional().default("pending"),
 });
 

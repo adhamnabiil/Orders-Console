@@ -2,18 +2,19 @@ import request from "supertest";
 import { describe, expect, it } from "vitest";
 import "./setup.js";
 import { createApp } from "../src/app.js";
+import { PRODUCT_CATALOG } from "../src/data/catalog.js";
 import { OrderModel } from "../src/models/order.model.js";
 import { agentToken } from "./setup.js";
 
 const app = createApp();
 
+const catalogProduct = PRODUCT_CATALOG[0];
+const otherProduct = PRODUCT_CATALOG[1];
+
 const baseBody = {
   customerName: "Ada Lovelace",
   customerEmail: "ada@example.com",
-  items: [
-    { productName: "Analytical Engine", quantity: 1, unitPriceCents: 50000 },
-  ],
-  totalCents: 50000,
+  items: [{ productName: catalogProduct.productName, quantity: 1 }],
   status: "pending" as const,
 };
 
@@ -39,6 +40,7 @@ describe("order create idempotency", () => {
 
     const ids = [first.body.order.id, second.body.order.id];
     expect(ids[0]).toBe(ids[1]);
+    expect(first.body.order.totalCents).toBe(catalogProduct.unitPriceCents);
     expect(await OrderModel.countDocuments({ idempotencyKey: key })).toBe(1);
   });
 
@@ -82,18 +84,24 @@ describe("order create idempotency", () => {
       .set("Idempotency-Key", key)
       .send({
         ...baseBody,
-        totalCents: 60000,
-        items: [
-          {
-            productName: "Analytical Engine",
-            quantity: 1,
-            unitPriceCents: 60000,
-          },
-        ],
+        items: [{ productName: otherProduct.productName, quantity: 2 }],
       });
 
     expect(second.status).toBe(422);
     expect(await OrderModel.countDocuments({ idempotencyKey: key })).toBe(1);
+  });
+
+  it("rejects unknown products", async () => {
+    const res = await request(app)
+      .post("/api/orders")
+      .set("Authorization", `Bearer ${agentToken}`)
+      .set("Idempotency-Key", crypto.randomUUID())
+      .send({
+        ...baseBody,
+        items: [{ productName: "Not In Catalog", quantity: 1 }],
+      });
+
+    expect(res.status).toBe(400);
   });
 
   it("rejects create without Idempotency-Key", async () => {

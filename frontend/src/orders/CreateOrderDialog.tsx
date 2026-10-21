@@ -5,7 +5,11 @@ import {
   DialogActions,
   DialogContent,
   DialogTitle,
+  FormControl,
   IconButton,
+  InputLabel,
+  MenuItem,
+  Select,
   Stack,
   TextField,
   Typography,
@@ -14,9 +18,12 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { createOrder } from "../api/orders";
 import {
-  computeTotalCents,
-  createOrderSchema,
-} from "../validation/orderSchema";
+  PRODUCT_CATALOG,
+  formatDollars,
+  getCatalogPrice,
+  type CatalogProductName,
+} from "../data/catalog";
+import { createOrderSchema } from "../validation/orderSchema";
 
 type Props = {
   open: boolean;
@@ -24,15 +31,15 @@ type Props = {
 };
 
 type ItemDraft = {
-  productName: string;
+  productName: CatalogProductName;
   quantity: string;
-  unitPriceCents: string;
 };
 
+const defaultProduct = PRODUCT_CATALOG[0].productName;
+
 const emptyItem = (): ItemDraft => ({
-  productName: "",
+  productName: defaultProduct,
   quantity: "1",
-  unitPriceCents: "0",
 });
 
 export function CreateOrderDialog({ open, onClose }: Props) {
@@ -58,7 +65,7 @@ export function CreateOrderDialog({ open, onClose }: Props) {
   const totalCents = useMemo(() => {
     return items.reduce((sum, item) => {
       const qty = Number(item.quantity) || 0;
-      const price = Number(item.unitPriceCents) || 0;
+      const price = getCatalogPrice(item.productName) ?? 0;
       return sum + qty * price;
     }, 0);
   }, [items]);
@@ -71,16 +78,13 @@ export function CreateOrderDialog({ open, onClose }: Props) {
         items: items.map((item) => ({
           productName: item.productName,
           quantity: Number(item.quantity),
-          unitPriceCents: Number(item.unitPriceCents),
         })),
       });
-      const total = computeTotalCents(parsed.items);
       return createOrder(
         {
           customerName: parsed.customerName,
           customerEmail: parsed.customerEmail,
           items: parsed.items,
-          totalCents: total,
           status: "pending",
         },
         idempotencyKey,
@@ -92,11 +96,9 @@ export function CreateOrderDialog({ open, onClose }: Props) {
     },
     onError: (err: unknown) => {
       const message =
-        // axios error shape
         (err as { response?: { data?: { error?: string } } })?.response?.data
           ?.error ?? "Failed to create order";
       setFormError(message);
-      // Keep the same idempotency key for retries / double-clicks.
     },
   });
 
@@ -110,13 +112,10 @@ export function CreateOrderDialog({ open, onClose }: Props) {
         items: items.map((item) => ({
           productName: item.productName,
           quantity: Number(item.quantity),
-          unitPriceCents: Number(item.unitPriceCents),
         })),
       });
-    } catch (err) {
-      setFormError(
-        err instanceof Error ? "Please fix the form errors" : "Invalid form",
-      );
+    } catch {
+      setFormError("Please fix the form errors");
       return;
     }
     mutation.mutate();
@@ -126,7 +125,13 @@ export function CreateOrderDialog({ open, onClose }: Props) {
     <Dialog open={open} onClose={onClose} fullWidth maxWidth="sm">
       <DialogTitle>Create order</DialogTitle>
       <DialogContent>
-        <Stack component="form" id="create-order-form" spacing={2} sx={{ mt: 1 }} onSubmit={onSubmit}>
+        <Stack
+          component="form"
+          id="create-order-form"
+          spacing={2}
+          sx={{ mt: 1 }}
+          onSubmit={onSubmit}
+        >
           {formError && <Alert severity="error">{formError}</Alert>}
           <TextField
             label="Customer name"
@@ -144,52 +149,74 @@ export function CreateOrderDialog({ open, onClose }: Props) {
             fullWidth
           />
           <Typography variant="subtitle2">Line items (1–5)</Typography>
-          {items.map((item, index) => (
-            <Stack key={index} direction={{ xs: "column", sm: "row" }} spacing={1}>
-              <TextField
-                label="Product"
-                value={item.productName}
-                onChange={(e) => {
-                  const next = [...items];
-                  next[index] = { ...item, productName: e.target.value };
-                  setItems(next);
-                }}
-                fullWidth
-                required
-              />
-              <TextField
-                label="Qty"
-                type="number"
-                value={item.quantity}
-                onChange={(e) => {
-                  const next = [...items];
-                  next[index] = { ...item, quantity: e.target.value };
-                  setItems(next);
-                }}
-                sx={{ width: { sm: 100 } }}
-                required
-              />
-              <TextField
-                label="Unit price (cents)"
-                type="number"
-                value={item.unitPriceCents}
-                onChange={(e) => {
-                  const next = [...items];
-                  next[index] = { ...item, unitPriceCents: e.target.value };
-                  setItems(next);
-                }}
-                sx={{ width: { sm: 160 } }}
-                required
-              />
-              <IconButton
-                aria-label="Remove item"
-                disabled={items.length === 1}
-                onClick={() => setItems(items.filter((_, i) => i !== index))}
+          {items.map((item, index) => {
+            const unitPrice = getCatalogPrice(item.productName) ?? 0;
+            return (
+              <Stack
+                key={index}
+                direction={{ xs: "column", sm: "row" }}
+                spacing={1}
+                sx={{ alignItems: { sm: "center" } }}
               >
-                ×
-              </IconButton>
-            </Stack>
-          ))}
+                <FormControl fullWidth size="small" required>
+                  <InputLabel id={`product-${index}`}>Product</InputLabel>
+                  <Select
+                    labelId={`product-${index}`}
+                    label="Product"
+                    value={item.productName}
+                    onChange={(e) => {
+                      const next = [...items];
+                      next[index] = {
+                        ...item,
+                        productName: e.target.value as CatalogProductName,
+                      };
+                      setItems(next);
+                    }}
+                  >
+                    {PRODUCT_CATALOG.map((product) => (
+                      <MenuItem
+                        key={product.productName}
+                        value={product.productName}
+                      >
+                        {product.productName} (
+                        {formatDollars(product.unitPriceCents)})
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+                <TextField
+                  label="Qty"
+                  type="number"
+                  size="small"
+                  value={item.quantity}
+                  onChange={(e) => {
+                    const next = [...items];
+                    next[index] = { ...item, quantity: e.target.value };
+                    setItems(next);
+                  }}
+                  sx={{ width: { sm: 100 } }}
+                  required
+                  slotProps={{ htmlInput: { min: 1 } }}
+                />
+                <Typography
+                  variant="body2"
+                  color="text.secondary"
+                  sx={{ minWidth: 72, whiteSpace: "nowrap" }}
+                >
+                  {formatDollars(unitPrice)}
+                </Typography>
+                <IconButton
+                  aria-label="Remove item"
+                  disabled={items.length === 1}
+                  onClick={() =>
+                    setItems(items.filter((_, i) => i !== index))
+                  }
+                >
+                  ×
+                </IconButton>
+              </Stack>
+            );
+          })}
           <Button
             type="button"
             disabled={items.length >= 5}
@@ -198,7 +225,7 @@ export function CreateOrderDialog({ open, onClose }: Props) {
             Add item
           </Button>
           <Typography sx={{ fontWeight: 600 }}>
-            Total: ${(totalCents / 100).toFixed(2)}
+            Total: {formatDollars(totalCents)}
           </Typography>
         </Stack>
       </DialogContent>

@@ -1,5 +1,6 @@
 import { faker } from "@faker-js/faker";
 import { connectDb, disconnectDb } from "../src/config/db.js";
+import { PRODUCT_CATALOG } from "../src/data/catalog.js";
 import { ORDER_STATUSES } from "../src/models/order.model.js";
 import { orderRepository } from "../src/repositories/order.repository.js";
 import { userRepository } from "../src/repositories/user.repository.js";
@@ -27,6 +28,19 @@ function pickStatus(): (typeof ORDER_STATUSES)[number] {
     if (roll <= 0) return item.status;
   }
   return "pending";
+}
+
+function pickCatalogItems() {
+  const itemCount = faker.number.int({ min: 1, max: 5 });
+  const products = faker.helpers.arrayElements(
+    [...PRODUCT_CATALOG],
+    itemCount,
+  );
+  return products.map((product) => ({
+    productName: product.productName,
+    quantity: faker.number.int({ min: 1, max: 8 }),
+    unitPriceCents: product.unitPriceCents,
+  }));
 }
 
 async function seed() {
@@ -60,12 +74,7 @@ async function seed() {
 
   for (let offset = 0; offset < TOTAL_ORDERS; offset += BATCH_SIZE) {
     const batch = Array.from({ length: BATCH_SIZE }, () => {
-      const itemCount = faker.number.int({ min: 1, max: 5 });
-      const items = Array.from({ length: itemCount }, () => ({
-        productName: faker.commerce.productName(),
-        quantity: faker.number.int({ min: 1, max: 8 }),
-        unitPriceCents: faker.number.int({ min: 199, max: 49999 }),
-      }));
+      const items = pickCatalogItems();
       const totalCents = items.reduce(
         (sum, item) => sum + item.quantity * item.unitPriceCents,
         0,

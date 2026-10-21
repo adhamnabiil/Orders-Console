@@ -1,9 +1,13 @@
 import { z } from "zod";
+import { CATALOG_PRODUCT_NAMES } from "../data/catalog";
+
+const catalogNameSchema = z.enum(
+  CATALOG_PRODUCT_NAMES as [string, ...string[]],
+);
 
 const orderItemSchema = z.object({
-  productName: z.string().trim().min(1, "Product name is required"),
+  productName: catalogNameSchema,
   quantity: z.coerce.number().int().min(1).max(10_000),
-  unitPriceCents: z.coerce.number().int().min(0).max(100_000_000),
 });
 
 export const createOrderSchema = z.object({
@@ -13,12 +17,3 @@ export const createOrderSchema = z.object({
 });
 
 export type CreateOrderFormValues = z.infer<typeof createOrderSchema>;
-
-export function computeTotalCents(
-  items: CreateOrderFormValues["items"],
-): number {
-  return items.reduce(
-    (sum, item) => sum + Number(item.quantity) * Number(item.unitPriceCents),
-    0,
-  );
-}
