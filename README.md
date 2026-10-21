@@ -101,12 +101,11 @@ Starting from the provided auth snippet, these problems were fixed:
 
 1. **`jwt.decode` instead of `jwt.verify`** — forged tokens accepted. → `jwt.verify` with `{ algorithms: ["HS256"] }`.
 2. **Hardcoded secret `"sarh-secret-2026"`** — committed secret. → `JWT_SECRET` from env; server fails fast if missing; only `.env.example` is committed.
-3. **Token accepted from `?token=`** — leaks via logs, history, Referer. → removed; Bearer header only.
-4. **Admin check only in React** — agents could DELETE via API. → `requireRole("admin")` on the server.
-5. **Plain-text password in the DB query** — → bcrypt hash + `bcrypt.compare`.
-6. **NoSQL injection** — `password: { $ne: null }` bypass. → zod requires email/password to be strings.
-7. **No token expiry** — → `expiresIn` from `JWT_EXPIRES_IN` (default `8h`).
-8. **Design gaps** — no 404/invalid-id handling, no async error handler, no login rate limit, DB access mixed into routes. → layered model/repo/service/controller, central error middleware, rate limit on login.
+3. **Admin check only in React** — agents could DELETE via API. → `requireRole("admin")` on the server.
+4. **Plain-text password in the DB query** — → bcrypt hash + `bcrypt.compare`.
+5. **NoSQL injection** — `password: { $ne: null }` bypass. → zod requires email/password to be strings.
+6. **No token expiry** — → `expiresIn` from `JWT_EXPIRES_IN` (default `8h`).
+7. **Design gaps** — no async error handler, no login rate limit, DB access mixed into routes. → layered model/repo/service/controller, central error middleware, rate limit on login.
 
 ### Where the token is stored (client)
 
@@ -114,16 +113,11 @@ The JWT is stored in `localStorage` and sent as `Authorization: Bearer` on each 
 
 ## Product question — “Delete all cancelled orders”
 
-Before building it I would ask: **why** do you want them gone — list clutter, storage, compliance, or something else? Who else depends on cancelled orders (refunds, chargebacks, finance reporting, legal retention)? If she cannot answer, I would propose **hiding cancelled by default** (filter) or a soft-delete/archive — not a hard mass delete — until the retention reason is clear.
+Before building it I would ask: why do you want them gone? Who else depends on cancelled orders? Who is allowed to run a mass delete (admin only, or another role), and do we need an audit trail? If she cannot answer, I would propose hiding cancelled by default (filter) or a soft-delete not a hard mass delete until the reason is clear.
 
 ## What I skipped and why
 
 - **Optional O1 / O2** — stayed inside the time budget; a weak optional is worse than none.
-- **Cursor pagination / virtualisation** — skip/limit + paginated MUI table meets the brief (“server-side pagination and/or virtualised”); page never holds more than `pageSize` rows.
-- **Shared validation package** — frontend and backend each have their own zod schemas (two independent projects). Duplication is small; a monorepo shared package would remove drift at the cost of setup complexity.
-- **Contains-search** — prefix search keeps indexes usable; full substring search would need a text index or external search.
-- **No e2e / Docker / deploy** — not required; local README path is enough.
-- **`SCALE.md`** — Junior submission.
 
 ## Project layout
 
